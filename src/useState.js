@@ -1,6 +1,6 @@
-import { useReducer, useRef } from 'react';
-import { isFunction } from './utils';
-import { useCache } from './useCache';
+import { useReducer, useRef } from "react";
+import { isFunction } from "./utils";
+import { useCache } from "./useCache";
 
 function stateReducer(state, newState) {
   return isFunction(newState) ? newState(state) : { ...state, ...newState };
@@ -8,6 +8,7 @@ function stateReducer(state, newState) {
 
 export function useState({ initialState, onClear, onReset }) {
   const state = useRef();
+
   const initialValues = useCache();
   const [values, setValues] = useReducer(stateReducer, initialState || {});
   const [touched, setTouched] = useReducer(stateReducer, {});
@@ -23,8 +24,25 @@ export function useState({ initialState, onClear, onReset }) {
     setError({ [name]: inputError });
   }
 
-  const clearField = name => setField(name);
-  const resetField = name => setField(name, initialValues.get(name));
+  const controls = useState(() => ({
+    clearField: name => setField(name),
+    resetField: name => setField(name, initialValues.get(name)),
+    clear() {
+      Object.keys(state.current.values).forEach(clearField);
+      onClear();
+    },
+    reset() {
+      Object.keys(state.current.values).forEach(resetField);
+      onReset();
+    },
+    setField(name, value) {
+      setField(name, value, true, true);
+    },
+    setFieldError(name, error) {
+      setValidity({ [name]: false });
+      setError({ [name]: error });
+    }
+  }));
 
   return {
     /**
@@ -38,24 +56,6 @@ export function useState({ initialState, onClear, onReset }) {
     setValidity,
     setError,
     initialValues,
-    controls: {
-      clearField,
-      resetField,
-      clear() {
-        Object.keys(state.current.values).forEach(clearField);
-        onClear();
-      },
-      reset() {
-        Object.keys(state.current.values).forEach(resetField);
-        onReset();
-      },
-      setField(name, value) {
-        setField(name, value, true, true);
-      },
-      setFieldError(name, error) {
-        setValidity({ [name]: false });
-        setError({ [name]: error });
-      },
-    },
+    controls
   };
 }
