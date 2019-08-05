@@ -8,13 +8,14 @@ function stateReducer(state, newState) {
 
 export function useState({ initialState, onClear, onReset }) {
   const state = useRef();
-
+  const events = useRef();
   const initialValues = useCache();
   const [values, setValues] = useReducer(stateReducer, initialState || {});
   const [touched, setTouched] = useReducer(stateReducer, {});
   const [validity, setValidity] = useReducer(stateReducer, {});
   const [errors, setError] = useReducer(stateReducer, {});
 
+  events.current = { onClear, onReset };
   state.current = { values, touched, validity, errors };
 
   const controls = useMemo(() => {
@@ -33,11 +34,11 @@ export function useState({ initialState, onClear, onReset }) {
 
       clear() {
         Object.keys(state.current.values).forEach(clearField);
-        onClear();
+        events.current.onClear();
       },
       reset() {
         Object.keys(state.current.values).forEach(resetField);
-        onReset();
+        events.current.onReset();
       },
       setField(name, value) {
         setField(name, value, true, true);
