@@ -1,6 +1,6 @@
-import { useReducer, useRef } from "react";
-import { isFunction } from "./utils";
-import { useCache } from "./useCache";
+import { useReducer, useRef, useMemo } from 'react';
+import { isFunction } from './utils';
+import { useCache } from './useCache';
 
 function stateReducer(state, newState) {
   return isFunction(newState) ? newState(state) : { ...state, ...newState };
@@ -17,32 +17,37 @@ export function useState({ initialState, onClear, onReset }) {
 
   state.current = { values, touched, validity, errors };
 
-  function setField(name, value, inputValidity, inputTouched, inputError) {
-    setValues({ [name]: value });
-    setTouched({ [name]: inputTouched });
-    setValidity({ [name]: inputValidity });
-    setError({ [name]: inputError });
-  }
-
-  const controls = useState(() => ({
-    clearField: name => setField(name),
-    resetField: name => setField(name, initialValues.get(name)),
-    clear() {
-      Object.keys(state.current.values).forEach(clearField);
-      onClear();
-    },
-    reset() {
-      Object.keys(state.current.values).forEach(resetField);
-      onReset();
-    },
-    setField(name, value) {
-      setField(name, value, true, true);
-    },
-    setFieldError(name, error) {
-      setValidity({ [name]: false });
-      setError({ [name]: error });
+  const controls = useMemo(() => {
+    function setField(name, value, inputValidity, inputTouched, inputError) {
+      setValues({ [name]: value });
+      setTouched({ [name]: inputTouched });
+      setValidity({ [name]: inputValidity });
+      setError({ [name]: inputError });
     }
-  }));
+
+    const clearField = name => setField(name);
+    const resetField = name => setField(name, initialValues.get(name));
+    return {
+      clearField,
+      resetField,
+
+      clear() {
+        Object.keys(state.current.values).forEach(clearField);
+        onClear();
+      },
+      reset() {
+        Object.keys(state.current.values).forEach(resetField);
+        onReset();
+      },
+      setField(name, value) {
+        setField(name, value, true, true);
+      },
+      setFieldError(name, error) {
+        setValidity({ [name]: false });
+        setError({ [name]: error });
+      },
+    };
+  }, []);
 
   return {
     /**
@@ -56,6 +61,6 @@ export function useState({ initialState, onClear, onReset }) {
     setValidity,
     setError,
     initialValues,
-    controls
+    controls,
   };
 }
